@@ -1,0 +1,16 @@
+{
+  "webPort": "9000",
+  "channelUrl": "https://api.line-beta.me/v1/events",
+  "channelToken": "", 
+  "channelId": "",     
+  "eventToChannelId": "1382394785", 
+  "eventType": "138261613200062603",     
+  "channelSecret": "138d1be4be84dba8ead4de7e5511ae10",
+  "audioPort": 6000,
+  "upperLimit": 25000,
+  "noiseThreshold": 0.25,
+  "minQuietTime": 30,
+  "minNoiseTime": 5,
+  "myMid": ""
+}
+

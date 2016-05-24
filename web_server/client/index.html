@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>LittleSleeper</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="static/custom.css">
+
+
+    </head>
+    <body>
+    <div class="container">
+        <div class="header">
+            <nav>
+                <ul class="nav nav-pills pull-right">
+                    <li role="presentation">Hannah</li>
+                </ul>
+            </nav>
+            <h3 class="text-muted">Baby Monitor</h3>
+        </div>
+        <div class="webcam">
+            <!-- <img src="http://raspberrypi:8080"> -->
+        </div>
+
+        <!--  current status -->
+        <div class="jumbotron">
+            <h1 class="time_stamp" id="quiet"><span id="time_quiet"></span></h1>
+            <h1 class="time_stamp" id="crying"><span id="time_crying"></span></h1>
+        </div>
+
+
+        <!-- scrolling volume plot -->
+        <div class="plot-container">
+			<div id="plot" class="plot-placeholder"></div>
+		</div>
+
+        <!-- history -->
+        <table class="table table-hover" id="history_table">
+        </table>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script language="javascript" type="text/javascript" src={{ static_url("jquery.flot.js") }}></script>
+    <script language="javascript" type="text/javascript" src="static/canvasjs.min.js"></script>
+    <script type="text/javascript">
+    /* canvasjs */
+
+    </script>
+    
+    <script type="text/javascript">
+    
+    $(function() {
+        var zeros = []
+        for (var i = 0; i < 3600; i++) { zeros.push([i, 0.0]); }
+        var plot = $.plot("#plot", [ zeros ], {
+            series: {
+                color: "#000",
+                shadowSize: 0,	// Drawing is faster without shadows
+                lines: {
+                    lineWidth: 2
+                }
+            },
+            yaxis: {
+                min: 0.0,
+                max: 1.0,
+                show: false
+            },
+            xaxis: {
+                show: false
+            },
+            grid: {
+                borderWidth: 0
+            }
+        });
+        var socket = io();
+        socket.on('results', function(message){ 
+
+            // update the text display
+            $("#time_quiet").text(message.time_quiet);
+            $("#time_crying").text(message.time_crying);
+
+            // update the history table
+            var table = "<tr><th>Baby noise start</th><th>Duration</th></tr>";
+            $.each(message.crying_blocks, function( index, crying_block ) {
+               table += "<tr><td>" + crying_block.start_str + "</td><td>" + crying_block.duration + "</td></tr>";
+            });
+            $("#history_table").html(table);
+
+            // update the plot of the volume levels for the past hour
+            var data = message.audio_plot;
+            var vals = [];
+			for (var i = 0; i < data.length; i++) { vals.push([i, data[i]]); }
+            plot.setData([ vals ]);
+            plot.draw();
+        });
+        window.onresize = function(event) {
+            console.log('resize');
+            plot.draw();
+        }
+    });
+    </script>
+
+    </body>
+</html>
