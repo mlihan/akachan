@@ -15,13 +15,7 @@ CHUNK_SIZE = 8192
 AUDIO_FORMAT = pyaudio.paInt16
 SAMPLE_RATE = 16000
 BUFFER_HOURS = 1
-WEB_SERVER_ADDRESS = ('localhost', 6000)
-BROADCAST_INTERVAL = 1000
-
-UPPER_LIMIT = 25000
-NOISE_THRESHOLD = 0.25
-MIN_QUIET_TIME = 10
-MIN_NOISE_TIME = 5
+BROADCAST_INTERVAL = 1
 
 
 def process_audio(shared_audio, shared_time, shared_pos, lock):
@@ -71,13 +65,14 @@ def format_time_difference(time1, time2):
     return str(time_diff).split('.')[0]
 
 
-def process_broadcast(shared_audio, shared_time, shared_pos, lock):
+def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
     """
     Endless loop: Sends audio data to the web server every interval
 
     :param shared_audio:
     :param shared_time:
     :param shared_pos:
+    :param config:
     :param lock:
     :return:
     """
@@ -86,13 +81,12 @@ def process_broadcast(shared_audio, shared_time, shared_pos, lock):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
     # Connect the socket to the port where the server is
-    print >>sys.stderr, 'connecting to %s port %s' % WEB_SERVER_ADDRESS
-    sock.connect(WEB_SERVER_ADDRESS)
+    web_server = (config['serverUrl'], config['audioPort'])
+    print >>sys.stderr, 'connecting to %s port %s' % web_server
+    sock.connect(web_server)
     try: 
-        #let it accumulate audio data first
-        time.sleep(1)
         while True: 
-            time.sleep(1)
+            time.sleep(BROADCAST_INTERVAL)
             # acquire lock
             lock.acquire()
 
@@ -110,7 +104,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, lock):
             audio_signal = np.roll(audio_signal, shift=buffer_len-current_pos)
 
             # normalise volume level
-            audio_signal /= UPPER_LIMIT
+            audio_signal /= config['upperLimit']
             # apply some smoothing
             sigma = 4 * (SAMPLE_RATE / float(CHUNK_SIZE))
             audio_signal = ndimage.gaussian_filter1d(audio_signal, sigma=sigma, mode="reflect")
@@ -129,8 +123,8 @@ def process_broadcast(shared_audio, shared_time, shared_pos, lock):
             # partition the audio history into blocks of type:
             #   1. noise, where the volume is greater than noise_threshold
             #   2. silence, where the volume is less than noise_threshold
-            noise = audio_signal > NOISE_THRESHOLD 
-            silent = audio_signal < NOISE_THRESHOLD
+            noise = audio_signal > config['noiseThreshold'] 
+            silent = audio_signal < config['noiseThreshold'] 
             # join "noise blocks" that are closer together than min_quiet_time
             crying_blocks = []
             if np.any(noise):
@@ -145,7 +139,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, lock):
                         continue
 
                     interval_length = time_stamps[stop-1] - time_stamps[start]
-                    if interval_length < MIN_QUIET_TIME:
+                    if interval_length < config['minQuietTime']:
                         noise[start:stop] = True
 
                 # find noise blocks start times and duration
@@ -157,7 +151,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, lock):
                     duration = stop - start
                     
                     # ignore isolated noises (i.e. with a duration less than min_noise_time)
-                    if duration < MIN_NOISE_TIME: 
+                    if duration < config['minNoiseTime']: 
                         continue
 
                     # save some info about the noise block
@@ -176,7 +170,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, lock):
             if len(crying_blocks) == 0:
                 time_quiet = str_quiet + format_time_difference(time_stamps[0], time_current)
             else:
-                if time_current - crying_blocks[-1]['stop'] < MIN_QUIET_TIME: 
+                if time_current - crying_blocks[-1]['stop'] < config['minQuietTime']: 
                     time_crying = str_crying + format_time_difference(crying_blocks[-1]['start'], time_current)
                 else:
                     time_quiet = str_quiet + format_time_difference(crying_blocks[-1]['stop'], time_current)
@@ -198,6 +192,10 @@ def process_broadcast(shared_audio, shared_time, shared_pos, lock):
         sock.close()
 
 def init_server():
+    # read config file
+    with open('../config/config.json', 'r') as f:
+        config = json.load(f)
+    
     # figure out how big the buffer needs to be to contain BUFFER_HOURS of audio
     buffer_len = int(BUFFER_HOURS * 60 * 60 * (SAMPLE_RATE / float(CHUNK_SIZE)))
 
@@ -211,7 +209,7 @@ def init_server():
     # 1. a process to continuously monitor the audio feed
     # 2. a process to handle requests for the latest audio data
     p1 = mp.Process(target=process_audio, args=(shared_audio, shared_time, shared_pos, lock))
-    p2 = mp.Process(target=process_broadcast, args=(shared_audio, shared_time, shared_pos, lock))
+    p2 = mp.Process(target=process_broadcast, args=(shared_audio, shared_time, shared_pos, config, lock))
     p1.start()
     p2.start()
 

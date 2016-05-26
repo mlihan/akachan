@@ -1,16 +1,14 @@
 {
-  "webPort": "9000",
-  "channelUrl": "https://api.line-beta.me/v1/events",
-  "channelToken": "", 
-  "channelId": "",     
-  "eventToChannelId": "1382394785", 
-  "eventType": "138261613200062603",     
-  "channelSecret": "138d1be4be84dba8ead4de7e5511ae10",
+  "serverUrl": "localhost",
+  "webPort": 9000,
   "audioPort": 6000,
+  "channelUrl": "https://api.line.me/v1/events",
+  "eventToChannelId": "1383378250", 
+  "eventType": "138311608800106203",     
+  "channelId": "",     
+  "channelSecret": "",
   "upperLimit": 25000,
   "noiseThreshold": 0.25,
-  "minQuietTime": 30,
-  "minNoiseTime": 5,
-  "myMid": ""
+  "minQuietTime": 10,
+  "minNoiseTime": 5
 }
-
