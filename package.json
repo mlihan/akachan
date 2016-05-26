@@ -8,7 +8,7 @@
   ],
   "author": "",
   "scripts": {
-    "start": "run.sh"
+    "start": "node server.js"
   },
   "devDependencies": {},
   "dependencies": {

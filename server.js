@@ -5,7 +5,7 @@ var express = require('express');
 var request = require('request');
 var bodyParser = require('body-parser');
 var CryptoJS = require("crypto-js");
-var config = require('./../config/config.json');
+var config = require('config/config.json');
 var path = require('path');
 
 var app = require('express')();
