@@ -14,16 +14,9 @@ var io = require('socket.io')(http);
 
 var webPort = config.webPort;
 var audioPort = config.audioPort;
-//var expressWs = require('express-ws')(app);
-
 
 //database
 //var sqlite3 = require('sqlite3').verbose();
-
-//users
-//beta
-//var myMid = "u18a6ca7737c72813832bf3f8702dd405";
-//real
 
 app.use(bodyParser.json());
 
@@ -129,6 +122,49 @@ function sendMsgToKnownUsersByDB(msg) {
 	db.close();
 }
 
+function listenMicData() {
+	var results = new Object();
+    //Use tcp socket to communicates with audio_server
+	var net = require('net');
+	net.createServer(function(socket) {
+		console.log("connected");
+		socket.on('data', function(data) { 
+			//console.log(data.toString());
+			results = JSON.parse(data);
+			//server.destroy();
+			if (results) {
+				//send results to clients
+				results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
+		    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
+
+		    	//send results to all clients
+		    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
+	    		io.emit('results', results);
+
+	    		if (results.time_crying == "" ) {
+	 				if (IS_DEBUG)
+	    				console.log('baby is quiet');    			
+	    		} else if (results.time_quiet == "" ) {
+	    			if (IS_DEBUG)
+	    				console.log('baby is crying');
+	    		}
+	    		//If cry is detected it will send message to known users
+	    		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
+	 				if (IS_DEBUG)
+	    				console.log('baby is crying');
+	    			sendMsgToKnownUsers('baby is crying');
+	    		}
+			}
+		});
+		socket.on('error', function (err) {
+			console.log(err);
+		});
+		socket.on('end', function () {
+			console.log('audio disconnected');
+		});	
+	}).listen(audioPort);
+}
+
 function broadcastMicData() {
 	var parameters = {
 		noise_threshold: config.noiseThreshold,
@@ -182,10 +218,9 @@ function broadcastMicData() {
 	});	
 }
 //call Broadcast mic data every second
-setInterval(function(){
-	broadcastMicData();
-}, 1000);
-
+//setInterval(function(){
+//	broadcastMicData();
+//}, 1000);
 
 // Serve static files
 app.use('/static', express.static(path.join(__dirname, 'client/static')));
@@ -210,7 +245,12 @@ io.on('connection', function (socket) {
 
 
 http.listen(webPort, function(){
-	console.log('new listening on *:' + webPort);
+	console.log('web listening on *:' + webPort);
+});
+
+http.listen(audioPort, function(){
+	console.log('audio listening on *:' + audioPort);
+	listenMicData();
 });
 
 /* express ws
