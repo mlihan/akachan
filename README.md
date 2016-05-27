@@ -2,7 +2,7 @@
 
 Akachan is a [LINE BOT API Trial](https://developers.line.me/type-of-accounts/bot-api-trial) account that is linked to a Raspberry Pi, speaker and USB web camera.
 
-This uses [LINE Bussiness Center](https://business.line.me) to integrate with LINE.
+The web server is written in Node JS which handles communication between LINE and audio server. It should ideally run on a public IP, Heroku (https://dashboard.heroku.com/), or other cloud services to communicate with LINE securely. Audio server is running on Raspberry Pi and communicates with the web server through web socket. Sound detector uses [Neil Yager](https://github.com/NeilYager/LittleSleeper) application.
 
 ## Prerequisite
 1. Create the LINE channel on [LINE Bussiness Center](https://business.line.me/)
@@ -28,6 +28,7 @@ This uses [LINE Bussiness Center](https://business.line.me) to integrate with LI
     $ npm install
 ```
 * Rename config/config_sample.json as config/config.json, input the web address, mid, channel ID and channel secret.
+* Please note that you would most likely need to configure a lot more than what's written here. Please check [Raspberry Pi forums](https://www.raspberrypi.org/forums/) for troubleshooting
 
 ## Run
 ### Web Server
