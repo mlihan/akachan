@@ -1,31 +1,46 @@
-# BC sample server with NodeJS
+# Akachan
 
-This sample is aimed to let developers have a picture about the BC server development.
+Akachan is a [LINE BOT API Trial](https://developers.line.me/type-of-accounts/bot-api-trial) account that is linked to a Raspberry Pi, speaker and USB web camera.
 
-It is a echo server that shows some functions of [LINE Bussiness Connect](https://developers.line.me/businessconnect/overview)
-* Signature Validation
-* Receiving Messages
-* Sending Messages
+This uses [LINE Bussiness Center](https://business.line.me) to integrate with LINE.
 
 ## Prerequisite
+1. Create the LINE channel on [LINE Bussiness Center](https://business.line.me/)
 
-1. Create the LINE channel on [LINE developers](https://developers.line.me/)
-1. Install [nodeJS](https://nodejs.org/), [npm](https://github.com/npm/npm)
+
+## Hardware Prerequisite
+1. Raspberry Pi
+2. Edimax WiFi
+3. 8GB or higher SD Card with Raspbian OS
+4. Any [supported](http://elinux.org/RPi_USB_Webcams) Web camera
+5. Any supported Audio speaker 
 
 ## Configuration
-* Install the node modules
+* Install [nodeJS](https://nodejs.org/), [npm](https://github.com/npm/npm)
+* Install [USB webcam](https://www.raspberrypi.org/documentation/usage/webcams/)
+* Install heroku (optional)
+* Install the media related applications and node modules
 ```
+    $ sudo apt-get install omxplayer
+    $ sudo apt-get install arecord
+    $ sudo apt-get install aplay
+    $ sudo apt-get install jackd
     $ npm install
 ```
-
-* Rename config/example.config.json as config/config.json, remove all the comments and fill in all necessary information.
+* Rename config/config_sample.json as config/config.json, input the web address, mid, channel ID and channel secret.
 
 ## Run
+### Web Server
 ```
     $ node server.js
 ```
+### Audio Server
+```
+    $ python audio_server.py
+```
 
-Try to send some message in your account. If you receive 'respond', it means it run sucessfully.
+* To check web client open http://<web server>:<web port>
+
 
 
 ## Dependecies
@@ -34,10 +49,13 @@ node_modules
 * [crypto-js](https://www.npmjs.com/package/crypto-js)
 * [express](https://www.npmjs.com/package/express)
 * [request](https://www.npmjs.com/package/request)
+* [express-ws](https://www.npmjs.com/package/express-ws)
+* [socket.io](https://www.npmjs.com/package/socket.io-client)
+* [sqlite3](https://www.npmjs.com/package/sqlite3)
 
 ## Reference
-* [The Technical Side of LINE Business Connect](http://developers.linecorp.com/blog/?p=3169)
-* [API Reference for LINE Bussiness Connect](https://developers.line.me/businessconnect/api-reference)
+* [LINE Developers BOT API](https://developers.line.me/bot-api/overview)
+* [LINE Developers BOT API Trial](https://developers.line.me/type-of-accounts/bot-api-trial)
 
 ### Note
 * This sample is built as a simple testbed. Please take care the settings and security staff if you want to use this sample as production enviroment.
