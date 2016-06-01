@@ -230,7 +230,7 @@ app.use('/monitor', express.static(path.join(__dirname, 'client/monitor')));
 
 // Serve index files
 app.get('/', function(req,res){
-	res.sendFile('client/index.html');
+	res.sendFile(path.join(__dirname, 'client/index.html'));
 });
 
 //websockect browser connection detected
