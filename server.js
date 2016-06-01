@@ -129,31 +129,35 @@ function listenMicData() {
 	net.createServer(function(socket) {
 		console.log("connected");
 		socket.on('data', function(data) { 
-			//console.log(data.toString());
-			results = JSON.parse(data);
-			//server.destroy();
-			if (results) {
-				//send results to clients
-				results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
-		    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
+			try {
+				results = JSON.parse(data);
+				//server.destroy();
+				if (results) {
+					//send results to clients
+					results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
+			    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
 
-		    	//send results to all clients
-		    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
-	    		io.emit('results', results);
+			    	//send results to all clients
+			    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
+		    		io.emit('results', results);
 
-	    		if (results.time_crying == "" ) {
-	 				if (IS_DEBUG)
-	    				console.log('baby is quiet');    			
-	    		} else if (results.time_quiet == "" ) {
-	    			if (IS_DEBUG)
-	    				console.log('baby is crying');
-	    		}
-	    		//If cry is detected it will send message to known users
-	    		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
-	 				if (IS_DEBUG)
-	    				console.log('baby is crying');
-	    			sendMsgToKnownUsers('baby is crying');
-	    		}
+		    		if (results.time_crying == "" ) {
+		 				if (IS_DEBUG)
+		    				console.log('baby is quiet');    			
+		    		} else if (results.time_quiet == "" ) {
+		    			if (IS_DEBUG)
+		    				console.log('baby is crying');
+		    		}
+		    		//If cry is detected it will send message to known users
+		    		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
+		 				if (IS_DEBUG)
+		    				console.log('baby is crying');
+		    			sendMsgToKnownUsers('baby is crying');
+		    		}
+				}
+			}
+			catch (e) {
+				console.log("Ignoring: " + data.toString());
 			}
 		});
 		socket.on('error', function (err) {
