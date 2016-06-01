@@ -225,14 +225,12 @@ function broadcastMicData() {
 // Serve static files
 app.use('/static', express.static(path.join(__dirname, 'client/static')));
 
+// Monitor purpose only
+app.use('/monitor', express.static(path.join(__dirname, 'client/monitor')));
+
 // Serve index files
 app.get('/', function(req,res){
 	res.sendfile('client/index.html');
-});
-
-// Test purpose only
-app.get('/chart', function(req,res){
-	res.sendfile('client/chart.html');
 });
 
 //websockect browser connection detected
