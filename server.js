@@ -73,6 +73,8 @@ app.post('/events', verifyRequest, function(req, res) {
 
 
 function sendMsg(who, content, callback) {
+	if (IS_DEBUG)
+		console.log('sending message: ' + content.toString());
 	var data = {
 		to: [who],
 		toChannel: config.eventToChannelId,
@@ -93,6 +95,7 @@ function sendMsg(who, content, callback) {
 		json: data
 	}, function(err, res, body) {
 		if (err) {
+			console.log(err);
 			callback(err);
 		} else {
 			callback();
@@ -106,7 +109,7 @@ function sendMsgToKnownUsers(msg) {
                 contentType: 1, toType: 1, text: msg
                 }, function(errMsg) {
                         if (errMsg) {
-                                return;
+                            return;
                         }
                 });
 }
@@ -127,98 +130,6 @@ function sendMsgToKnownUsersByDB(msg) {
 		});
 	});
 	db.close();
-}
-
-function listenMicData(req, res) {
-	var results = new Object();
-
-    //Use tcp socket to communicates with audio_server
-	console.log("connected");
-	console.log(req)
-	results = JSON.parse(data);
-	//server.destroy();
-	if (results) {
-		//send results to clients
-		results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
-    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
-
-    	//send results to all clients
-    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
-		io.emit('results', results);
-
-		if (results.time_crying == "" ) {
-				if (IS_DEBUG)
-				console.log('baby is quiet');    			
-		} else if (results.time_quiet == "" ) {
-			if (IS_DEBUG)
-				console.log('baby is crying');
-		}
-		//If cry is detected it will send message to known users
-		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
-				if (IS_DEBUG)
-				console.log('baby is crying');
-			sendMsgToKnownUsers('baby is crying');
-		}
-	}
-	socket.on('error', function (err) {
-		console.log(err);
-	});
-	socket.on('end', function () {
-		console.log('audio disconnected');
-	});	
-}
-
-function broadcastMicData() {
-	var parameters = {
-		noise_threshold: config.noiseThreshold,
-		upper_limit: config.upperLimit, 
-		min_noise_time: config.minNoiseTime,
-		min_quiet_time: config.minQuietTime
-	};
-	var jsonString = JSON.stringify(parameters);
-	var results = new Object();
-
-	//Use tcp socket to communicates with audio_server
-	var net = require('net');
-	var audio_conn = net.Socket();
-	audio_conn.connect(audioPort, 'localhost', function() {
-		audio_conn.write(jsonString);
-		//console.log('Sent: %s', jsonString);
-	});
-	audio_conn.on('data', function (data) {
-		//console.log('Received %s', data.toString());
-		results = JSON.parse(data);
-		audio_conn.destroy();
-		if (results) {
-			//send results to clients
-			results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
-	    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
-
-	    	//send results to all clients
-	    	console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
-    		io.emit('results', results);
-
-    		if (results.time_crying == "" ) {
- 				if (IS_DEBUG)
-    				console.log('baby is quiet');    			
-    		} else if (results.time_quiet == "" ) {
-    			if (IS_DEBUG)
-    				console.log('baby is crying');
-    		}
-    		//If cry is detected it will send message to known users
-    		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
- 				if (IS_DEBUG)
-    				console.log('baby is crying');
-    			sendMsgToKnownUsers('baby is crying');
-    		}
-		}
-	});
-	audio_conn.on('error', function (err) {
-			console.log(err);
-	});
-	audio_conn.on('end', function () {
-			console.log('audio server disconnected');
-	});	
 }
 
 // Serve static files
@@ -250,12 +161,7 @@ io.on('connection', function (socket) {
 // Handle post request from audio client
 audio_app.post('/', function(req,res) { 
     //console.log("audio connected");
-	// Print out requests 
-	//console.log("req.method: " + req.method);
-	//console.log("req.params: " + req.params);
-	//console.log("req.is json: " + req.is('json'));
-	//console.log("req.body: " + req.body);
-	
+    
 	// Gather results based on audio data then broadcast to web client
 	var results = new Object();
 	results = req.body;
@@ -268,64 +174,28 @@ audio_app.post('/', function(req,res) {
     	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
 
     	//send results to all clients
-    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
+    	//console.log('results %s', JSON.stringify(results));
 		io.emit('results', results);
 
 		if (results.time_crying == "" ) {
-				if (IS_DEBUG)
-				console.log('baby is quiet');    			
+			//if (IS_DEBUG)
+			//	console.log('baby is quiet');    			
 		} else if (results.time_quiet == "" ) {
 			if (IS_DEBUG)
-				console.log('baby is crying');
+				console.log('baby is crying: ' + results.time_crying.toString());
 		}
 		//If cry is detected it will send message to known users
-		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
-				if (IS_DEBUG)
-				console.log('baby is crying');
+		if (results.time_crying.toString().indexOf("Crying for 0:00:06") > -1) {
+			if (IS_DEBUG)
+				console.log('Sending to known users');
 			sendMsgToKnownUsers('baby is crying');
 		}
 	}
 });
 
 
-app.listen(webPort);
 audio_app.listen(audioPort);
 
-
-//http.listen(webPort, function(){
-//	console.log('web listening on *:' + webPort);
-//});
-
-//audio_http.listen(audioPort, function(){
-//	console.log('audio listening on *:' + audioPort);
-//});
-
-/* express ws
-app.ws('/ws', function(ws, req) {
-	ws.on('message', function(msg) {
-		console.log(msg);
-	});
-	console.log('socket', req.testing);
+http.listen(webPort, function(){
+	console.log('web listening on *:' + webPort);
 });
-
-// express ws example
-app.use(function (req, res, next) {
-  console.log('middleware');
-  req.testing = 'testing';
-  return next();
-});
-
-app.get('/', function(req, res, next){
-  console.log('get route', req.testing);
-  res.end();
-});
-*/
-
-// Route everything else
-/* app.get('*', function(req, res){
-	res.send('Hello World');
-});
-*/
-
-//app.listen(webPort);
-//console.log('listening to webPort '  + webPort);
