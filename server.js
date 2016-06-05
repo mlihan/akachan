@@ -86,7 +86,9 @@ function sendMsg(who, content, callback) {
 		url: config.channelUrl,
 		headers: {
 			'Content-Type': 'application/json',
-			'X-LINE-ChannelToken': config.channelToken
+			'X-LINE-ChannelSecret': config.channelSecret,
+			'X-LINE-ChannelID': config.channelId,
+			'X-LINE-Trusted-User-With-ACL': config.channelMid 
 		},
 		json: data
 	}, function(err, res, body) {
