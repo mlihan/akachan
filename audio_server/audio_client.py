@@ -5,11 +5,13 @@ import multiprocessing as mp
 import logging
 import ctypes
 import json
-import socket
+#import socket
+import requests
 import sys
 from scipy import ndimage, interpolate
 from datetime import datetime
 from multiprocessing.connection import Listener
+from requests.exceptions import ConnectionError
 
 CHUNK_SIZE = 8192
 AUDIO_FORMAT = pyaudio.paInt16
@@ -58,7 +60,6 @@ def process_audio(shared_audio, shared_time, shared_pos, lock):
     stream.close()
     p.terminate()
 
-
 def format_time_difference(time1, time2):
     time_diff = datetime.fromtimestamp(time2) - datetime.fromtimestamp(time1)
 
@@ -77,13 +78,14 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
     :return:
     """
 
+    # Initialize web server address and port
+    web_server = 'http://%s:%s' % (config['serverUrl'], config['audioPort'])
+    print >>sys.stderr, 'connecting to %s' % web_server
+
     # Create TCP socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    # Connect the socket to the port where the server is
-    web_server = (config['serverUrl'], config['audioPort'])
-    print >>sys.stderr, 'connecting to %s port %s' % web_server
-    sock.connect(web_server)
+    #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
+    #sock.connect(web_server)
+
     try: 
         while True: 
             time.sleep(BROADCAST_INTERVAL)
@@ -186,10 +188,16 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             #print "before json dump: ", results
             jsonString = json.dumps(results)
             #print "sending json dump: ", jsonString
-            sock.sendall(jsonString)        
+
+            # send json using requests
+            headers = {'content-type': 'application/json'}
+            res = requests.post(web_server, data=jsonString, headers=headers)
+
+    except ConnectionError as e:
+        print >>sys.stderr, e
     finally:
-        print >>sys.stderr, 'closing socket'
-        sock.close()
+        print >>sys.stderr, 'closing application'
+        sys.exit()
 
 def init_server():
     # read config file

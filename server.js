@@ -12,13 +12,18 @@ var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+var audio_app = require('express')();
+var audio_http = require('http').Server(audio_app);
+
 var webPort = config.webPort;
 var audioPort = config.audioPort;
+
 
 //database
 //var sqlite3 = require('sqlite3').verbose();
 
 app.use(bodyParser.json());
+audio_app.use(bodyParser.json());
 
 function verifyRequest(req, res, next) {
 	// Refer to https://developers.line.me/businessconnect/development-bot-server#signature_validation
@@ -122,51 +127,43 @@ function sendMsgToKnownUsersByDB(msg) {
 	db.close();
 }
 
-function listenMicData() {
+function listenMicData(req, res) {
 	var results = new Object();
+
     //Use tcp socket to communicates with audio_server
-	var net = require('net');
-	net.createServer(function(socket) {
-		console.log("connected");
-		socket.on('data', function(data) { 
-			try {
-				results = JSON.parse(data);
-				//server.destroy();
-				if (results) {
-					//send results to clients
-					results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
-			    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
+	console.log("connected");
+	console.log(req)
+	results = JSON.parse(data);
+	//server.destroy();
+	if (results) {
+		//send results to clients
+		results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
+    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
 
-			    	//send results to all clients
-			    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
-		    		io.emit('results', results);
+    	//send results to all clients
+    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
+		io.emit('results', results);
 
-		    		if (results.time_crying == "" ) {
-		 				if (IS_DEBUG)
-		    				console.log('baby is quiet');    			
-		    		} else if (results.time_quiet == "" ) {
-		    			if (IS_DEBUG)
-		    				console.log('baby is crying');
-		    		}
-		    		//If cry is detected it will send message to known users
-		    		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
-		 				if (IS_DEBUG)
-		    				console.log('baby is crying');
-		    			sendMsgToKnownUsers('baby is crying');
-		    		}
-				}
-			}
-			catch (e) {
-				console.log("Ignoring: " + data.toString());
-			}
-		});
-		socket.on('error', function (err) {
-			console.log(err);
-		});
-		socket.on('end', function () {
-			console.log('audio disconnected');
-		});	
-	}).listen(audioPort);
+		if (results.time_crying == "" ) {
+				if (IS_DEBUG)
+				console.log('baby is quiet');    			
+		} else if (results.time_quiet == "" ) {
+			if (IS_DEBUG)
+				console.log('baby is crying');
+		}
+		//If cry is detected it will send message to known users
+		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
+				if (IS_DEBUG)
+				console.log('baby is crying');
+			sendMsgToKnownUsers('baby is crying');
+		}
+	}
+	socket.on('error', function (err) {
+		console.log(err);
+	});
+	socket.on('end', function () {
+		console.log('audio disconnected');
+	});	
 }
 
 function broadcastMicData() {
@@ -221,16 +218,19 @@ function broadcastMicData() {
 			console.log('audio server disconnected');
 	});	
 }
-//call Broadcast mic data every second
-//setInterval(function(){
-//	broadcastMicData();
-//}, 1000);
 
 // Serve static files
 app.use('/static', express.static(path.join(__dirname, 'client/static')));
 
-// Monitor purpose only
-app.use('/monitor', express.static(path.join(__dirname, 'client/monitor')));
+// Monitor purpose
+app.get('/monitor/l7check', function(req,res){
+	res.send('ok');
+});
+
+// Monitor purpose
+audio_app.get('/monitor/l7check', function(req,res){
+	res.send('ok');
+});
 
 // Serve index files
 app.get('/', function(req,res){
@@ -239,21 +239,64 @@ app.get('/', function(req,res){
 
 //websockect browser connection detected
 io.on('connection', function (socket) { 
-	console.log('a user connected');
+	console.log('web user connected');
 	socket.on('disconnect', function() {
-		console.log('user disconnected');
+		console.log('web user disconnected');
 	})
 });
 
+// Handle post request from audio client
+audio_app.post('/', function(req,res) { 
+    //console.log("audio connected");
+	// Print out requests 
+	//console.log("req.method: " + req.method);
+	//console.log("req.params: " + req.params);
+	//console.log("req.is json: " + req.is('json'));
+	//console.log("req.body: " + req.body);
+	
+	// Gather results based on audio data then broadcast to web client
+	var results = new Object();
+	results = req.body;
+	// Send a response
+	res.send('OK');
+	// Analyze request
+	if (results) {
+		//send results to clients
+		results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
+    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
 
-http.listen(webPort, function(){
-	console.log('web listening on *:' + webPort);
+    	//send results to all clients
+    	//console.log('time_crying: %s, time_quiet: %s', results["time_crying"], results["time_quiet"]);
+		io.emit('results', results);
+
+		if (results.time_crying == "" ) {
+				if (IS_DEBUG)
+				console.log('baby is quiet');    			
+		} else if (results.time_quiet == "" ) {
+			if (IS_DEBUG)
+				console.log('baby is crying');
+		}
+		//If cry is detected it will send message to known users
+		if (results.time_crying.toString().indexOf("noise for 0:00:06") > -1) {
+				if (IS_DEBUG)
+				console.log('baby is crying');
+			sendMsgToKnownUsers('baby is crying');
+		}
+	}
 });
 
-http.listen(audioPort, function(){
-	console.log('audio listening on *:' + audioPort);
-	listenMicData();
-});
+
+app.listen(webPort);
+audio_app.listen(audioPort);
+
+
+//http.listen(webPort, function(){
+//	console.log('web listening on *:' + webPort);
+//});
+
+//audio_http.listen(audioPort, function(){
+//	console.log('audio listening on *:' + audioPort);
+//});
 
 /* express ws
 app.ws('/ws', function(ws, req) {
