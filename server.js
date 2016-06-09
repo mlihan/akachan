@@ -18,7 +18,7 @@ var audio_http = require('http').Server(audio_app);
 var webPort = config.webPort;
 var audioPort = config.audioPort;
 
-
+var isSent = 0;
 //database
 //var sqlite3 = require('sqlite3').verbose();
 
@@ -161,7 +161,7 @@ io.on('connection', function (socket) {
 // Handle post request from audio client
 audio_app.post('/', function(req,res) { 
     //console.log("audio connected");
-    
+    var isCrying;
 	// Gather results based on audio data then broadcast to web client
 	var results = new Object();
 	results = req.body;
@@ -176,18 +176,16 @@ audio_app.post('/', function(req,res) {
     	//send results to all clients
     	//console.log('results %s', JSON.stringify(results));
 		io.emit('results', results);
-
+		//Check data if baby is crying or quiet
 		if (results.time_crying == "" ) {
-			//if (IS_DEBUG)
-			//	console.log('baby is quiet');    			
+			isCrying = 0;
+		    isSent = 0;
 		} else if (results.time_quiet == "" ) {
-			if (IS_DEBUG)
-				console.log('baby is crying: ' + results.time_crying.toString());
+			isCrying = 1;
 		}
 		//If cry is detected it will send message to known users
-		if (results.time_crying.toString().indexOf("Crying for 0:00:06") > -1) {
-			if (IS_DEBUG)
-				console.log('Sending to known users');
+		if (isCrying && !isSent) {
+			isSent = 1;
 			sendMsgToKnownUsers('baby is crying');
 		}
 	}
