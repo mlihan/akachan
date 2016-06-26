@@ -5,9 +5,11 @@ import multiprocessing as mp
 import logging
 import ctypes
 import json
-#import socket
 import requests
 import sys
+import base64
+from subprocess import call
+from base64 import b64encode
 from scipy import ndimage, interpolate
 from datetime import datetime
 from multiprocessing.connection import Listener
@@ -18,7 +20,7 @@ AUDIO_FORMAT = pyaudio.paInt16
 SAMPLE_RATE = 16000
 BUFFER_HOURS = 1
 BROADCAST_INTERVAL = 1
-
+has_imgur = False
 
 def process_audio(shared_audio, shared_time, shared_pos, lock):
     """
@@ -168,15 +170,28 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             time_quiet = ""
             str_crying = "Crying for "
             str_quiet = "Quiet for "
+            is_crying = False
+            global has_imgur
 
             if len(crying_blocks) == 0:
                 time_quiet = str_quiet + format_time_difference(time_stamps[0], time_current)
             else:
                 if time_current - crying_blocks[-1]['stop'] < config['minQuietTime']: 
                     time_crying = str_crying + format_time_difference(crying_blocks[-1]['start'], time_current)
+                    is_crying = True
                 else:
                     time_quiet = str_quiet + format_time_difference(crying_blocks[-1]['stop'], time_current)
+                    is_crying = False
+                    has_imgur = False
             
+            # take a photo of baby and upload to imgur
+            if is_crying and not has_imgur:
+                photoPath = takePhoto(config['photoDir'])
+                print >>sys.stdout, 'imgURL %s' % photoPath
+                imgLink = uploadImgur(photoPath, config['imgurClientId'])
+                print >>sys.stdout, 'imgLink %s' % imgLink
+                has_imgur = True
+
             # return results to webserver
             results = {"audio_plot": audio_plot,
                        "crying_blocks": crying_blocks,
@@ -195,9 +210,29 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
 
     except ConnectionError as e:
         print >>sys.stderr, e
+    except:
+        print >>sys.stderr, 'Unexpected error:', sys.exc_info()[0]
     finally:
-        print >>sys.stderr, 'closing application'
         sys.exit()
+
+def takePhoto(photoDir):
+    photoPath = photoDir + '/pic.jpg'
+    call('fswebcam', '-r', '1280x720', '--no-banner', photoPath)
+    time.sleep(1)
+    return photoPath
+
+def uploadImgur(photoPath, clientID):
+    #encode image as base64
+    fh = open(photoPath, 'rb')
+    base64img = b64encode(fh.read())
+    #send post request to imgur
+    res = requests.post('https://api.imgur.com/3/image', 
+        data={'image':base64img},
+        headers={'Authorization':'Client-ID ' + clientID}
+        )
+    #parse json response
+    json_data = json.loads(res.text)
+    return str(json_data[u'data'][u'link'])
 
 def init_server():
     # read config file
