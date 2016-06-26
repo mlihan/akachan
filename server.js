@@ -114,6 +114,20 @@ function sendMsgToKnownUsers(msg) {
                 });
 }
 
+function sendImgToKnownUsers(url) {
+        //get mid from config
+        var thumbIndex = url.indexOf(".jpg");
+		var thumbUrl = url.slice(0, thumbIndex) + "m" + url.slice(thumbIndex);
+        console.log("thumbUrl " + thumbUrl);
+        sendMsg(config.myMid, {
+                contentType: 2, toType: 1, originalContentUrl: url, previewImageUrl: thumbUrl
+                }, function(errMsg) {
+                        if (errMsg) {
+                            return;
+                        }
+                });
+}
+
 function sendMsgToKnownUsersByDB(msg) {
 	//get each mid from DB
 	var db = new sqlite3.Database('akachan.db');
@@ -187,6 +201,7 @@ audio_app.post('/', function(req,res) {
 		if (isCrying && !isSent) {
 			isSent = 1;
 			sendMsgToKnownUsers('baby is crying');
+			sendImgToKnownUsers(results.img_link);
 		}
 	}
 });

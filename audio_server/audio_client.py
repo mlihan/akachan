@@ -170,6 +170,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             time_current = time.time()
             time_crying = ""
             time_quiet = ""
+            img_link = ""
             str_crying = "Crying for "
             str_quiet = "Quiet for "
             is_crying = False
@@ -188,18 +189,18 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             
             # take a photo of baby and upload to imgur
             if is_crying and not has_imgur:
-                print >>sys.stdout, 'hi'
-                photoPath = takePhoto(config['photoDir'])
-                print >>sys.stdout, 'imgURL %s' % photoPath
-                imgLink = uploadImgur(photoPath, config['imgurClientId'])
-                print >>sys.stdout, 'imgLink %s' % imgLink
+                photo_path = takePhoto(config['photoDir'], config['photoRes'])
+                print >>sys.stdout, 'imgURL %s' % photo_path
+                img_link = uploadImgur(photo_path, config['imgurClientId'])
+                print >>sys.stdout, 'imgLink %s' % img_link
                 has_imgur = True
 
             # return results to webserver
             results = {"audio_plot": audio_plot,
                        "crying_blocks": crying_blocks,
                        "time_crying": time_crying,
-                       "time_quiet": time_quiet}
+                       "time_quiet": time_quiet,
+                       "img_link": img_link}
 
             # convert to json
             results['audio_plot'] = results['audio_plot'].tolist()
@@ -221,10 +222,9 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
         del exc_info
         sys.exit()
 
-def takePhoto(photoDir):
+def takePhoto(photoDir, photoRes):
     photoPath = os.path.join(photoDir, 'pic.jpg')
-    call(['fswebcam', '-r', '1280x720', '--no-banner', photoPath])
-    time.sleep(1)
+    call(['fswebcam', '-r', photoRes, '--no-banner', photoPath])
     return photoPath
 
 def uploadImgur(photoPath, clientID):
