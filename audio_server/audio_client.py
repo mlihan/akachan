@@ -1,3 +1,5 @@
+import traceback
+import os
 import pyaudio
 import numpy as np
 import time
@@ -186,6 +188,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             
             # take a photo of baby and upload to imgur
             if is_crying and not has_imgur:
+                print >>sys.stdout, 'hi'
                 photoPath = takePhoto(config['photoDir'])
                 print >>sys.stdout, 'imgURL %s' % photoPath
                 imgLink = uploadImgur(photoPath, config['imgurClientId'])
@@ -210,14 +213,17 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
 
     except ConnectionError as e:
         print >>sys.stderr, e
-    except:
-        print >>sys.stderr, 'Unexpected error:', sys.exc_info()[0]
+    except Exception, err:
+        print >>sys.stderr, 'Unexpected error occurred'
+        exc_info = sys.exc_info()
+        traceback.print_exception(*exc_info)
     finally:
+        del exc_info
         sys.exit()
 
 def takePhoto(photoDir):
-    photoPath = photoDir + '/pic.jpg'
-    call('fswebcam', '-r', '1280x720', '--no-banner', photoPath)
+    photoPath = os.path.join(photoDir, 'pic.jpg')
+    call(['fswebcam', '-r', '1280x720', '--no-banner', photoPath])
     time.sleep(1)
     return photoPath
 
