@@ -200,7 +200,7 @@ audio_app.post('/', function(req,res) {
 		//If cry is detected it will send message to known users
 		if (isCrying && !isSent) {
 			isSent = 1;
-			sendMsgToKnownUsers('baby is crying');
+			sendMsgToKnownUsers(results.cry_message);
 			sendImgToKnownUsers(results.img_link);
 		}
 	}
