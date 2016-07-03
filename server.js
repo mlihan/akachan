@@ -19,6 +19,7 @@ var webPort = config.webPort;
 var audioPort = config.audioPort;
 
 var isSent = 0;
+var command = "ok";
 //database
 //var sqlite3 = require('sqlite3').verbose();
 
@@ -55,22 +56,47 @@ app.post('/events', verifyRequest, function(req, res) {
 	var type = content.type;
 	// assume it's text type here.
 	var text = content.text;
-
-	// Refer to https://developers.line.me/businessconnect/api-reference#sending_message
-	sendMsg(from, {
+        
+        // analyze input 
+        var output = analyzeCommand(text);
+        if (output != "") {	
+            // Refer to https://developers.line.me/businessconnect/api-reference#sending_message
+     	    sendMsg(from, {
 		contentType: 1,
 		toType: 1,
 		// you can replace 'respond' with whatever you want
-		text: 'your mid is ' + from
-	}, function(err) {
+		text: output 
+	    }, function(err) {
 		if (err) {
 			// sending message failed
 			return;
 		}
 		// message sent
-	});
+	    });
+        }
 });
 
+function analyzeCommand(text) {
+    var output = "";
+    var musicStrings = ['music','song'],
+        helpStrings = ['help', 'command'],
+        photoStrings = ['camera', 'photo', 'pic', 'snap'];
+    if (new RegExp(helpStrings.join("|")).test(text)) {
+        output = "Akachan list of commands \n" +
+                "1. help  - prints this \n" +
+                "2. music - plays a music \n" +
+                "3. photo - takes a photo \n";
+    } else if (new RegExp(musicStrings.join("|")).test(text)) {
+         output = ""; 
+         command = "music";
+    } else if (new RegExp(photoStrings.join("|")).test(text)) {
+         output = "";
+         command = "photo";
+    } else {
+        output = "Please type 'help'";
+    }
+    return output;
+}
 
 function sendMsg(who, content, callback) {
 	if (IS_DEBUG)
@@ -180,15 +206,16 @@ audio_app.post('/', function(req,res) {
 	var results = new Object();
 	results = req.body;
 	// Send a response
-	res.send('OK');
-	// Analyze request
+        res.send(command);
+	
+        // Analyze request
 	if (results) {
 		//send results to clients
 		results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
-    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
+    	        results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
 
-    	//send results to all clients
-    	//console.log('results %s', JSON.stringify(results));
+    		//send results to all clients
+    		//console.log('results %s', JSON.stringify(results));
 		io.emit('results', results);
 		//Check data if baby is crying or quiet
 		if (results.time_crying == "" ) {
@@ -202,6 +229,14 @@ audio_app.post('/', function(req,res) {
 			isSent = 1;
 			sendMsgToKnownUsers(results.cry_message);
 			sendImgToKnownUsers(results.img_link);
+		}
+                //If user has command to send photo 
+                //console.log(command + " " + results.img_link); 
+                if (command == "photo" && results.img_link) {
+                	command = "ok";
+			sendImgToKnownUsers(results.img_link);
+                } else if (command == "music") {
+			command = "ok"
 		}
 	}
 });
