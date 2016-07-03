@@ -10,7 +10,9 @@ import json
 import requests
 import sys
 import base64
-from subprocess import call
+import subprocess as sp
+import signal
+#from subprocess import call
 from base64 import b64encode
 from scipy import ndimage, interpolate
 from datetime import datetime
@@ -189,10 +191,13 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             
             # take a photo of baby and upload to imgur
             if is_crying and not has_imgur:
+                #play a music
+                playMusic(config['musicDir'], 'Twinkle.mp3')
+                print >>sys.stdout, 'playing %s/Twinkle.mp3' % config['musicDir']
+                #take a picture and upload to imgur
                 photo_path = takePhoto(config['photoDir'], config['photoRes'])
-                print >>sys.stdout, 'imgURL %s' % photo_path
                 img_link = uploadImgur(photo_path, config['imgurClientId'])
-                print >>sys.stdout, 'imgLink %s' % img_link
+                print >>sys.stdout, 'imgLink is %s' % img_link
                 has_imgur = True
 
             # return results to webserver
@@ -224,7 +229,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
 
 def takePhoto(photoDir, photoRes):
     photoPath = os.path.join(photoDir, 'pic.jpg')
-    call(['fswebcam', '-r', photoRes, '--no-banner', photoPath])
+    sp.Popen(['fswebcam', '-r', photoRes, '--no-banner', photoPath])
     return photoPath
 
 def uploadImgur(photoPath, clientID):
@@ -239,6 +244,17 @@ def uploadImgur(photoPath, clientID):
     #parse json response
     json_data = json.loads(res.text)
     return str(json_data[u'data'][u'link'])
+
+def playMusic(musicDir, filename):
+    global music_proc
+    # stop the current music if it's still playing
+    if music_proc.poll() is None:
+        os.killpg(os.gtpgid(music_proc.pid), signal.SIGTERM)
+        #music_proc.kill()
+    # play music
+    musicPath = os.path.join(musicDir, filename)
+    music_proc = sp.Popen(['mplayer', musicPath])
+
 
 def init_server():
     # read config file
@@ -261,7 +277,6 @@ def init_server():
     p2 = mp.Process(target=process_broadcast, args=(shared_audio, shared_time, shared_pos, config, lock))
     p1.start()
     p2.start()
-
 
 if __name__ == '__main__':
     init_server()
