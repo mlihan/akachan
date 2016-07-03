@@ -222,7 +222,10 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             # send json using requests
             headers = {'content-type': 'application/json'}
             res = requests.post(web_server, data=jsonString, headers=headers)
-
+          
+            # read response
+            print >>sys.stdout, 'res %s' % res.content
+            
     except ConnectionError as e:
         print >>sys.stderr, e
     except Exception, err:
