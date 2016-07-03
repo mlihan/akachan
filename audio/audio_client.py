@@ -16,7 +16,7 @@ from subprocess import call
 from base64 import b64encode
 from scipy import ndimage, interpolate
 from datetime import datetime
-from multiprocessing.connection import Listener
+#from multiprocessing.connection import Listener
 from requests.exceptions import ConnectionError
 
 CHUNK_SIZE = 8192
