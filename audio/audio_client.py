@@ -25,6 +25,7 @@ SAMPLE_RATE = 16000
 BUFFER_HOURS = 1
 BROADCAST_INTERVAL = 1
 has_imgur = False
+is_cmd_from_user = False
 
 def process_audio(shared_audio, shared_time, shared_pos, lock):
     """
@@ -169,16 +170,21 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
                                           'duration': format_time_difference(start, stop)})
             
             # determine how long have we been in the current state
+            global has_imgur
+            global is_cmd_from_user
             time_current = time.time()
             time_crying = ""
             time_quiet = ""
-            img_link = ""
             str_crying = "Crying for "
             str_quiet = "Quiet for "
             is_crying = False
             cry_message = "" 
-            global has_imgur
+            if is_cmd_from_user:
+                is_cmd_from_user = False
+            else:
+                img_link = ""
 
+            
             if len(crying_blocks) == 0:
                 time_quiet = str_quiet + format_time_difference(time_stamps[0], time_current)
             else:
@@ -224,8 +230,9 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             res = requests.post(web_server, data=jsonString, headers=headers)
           
             # read response
-            print >>sys.stdout, 'res %s' % res.content
-            
+            print >>sys.stdout, 'res %s' % res.text
+            readResponse(res.text)
+
     except ConnectionError as e:
         print >>sys.stderr, e
     except Exception, err:
@@ -235,6 +242,16 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
     finally:
         del exc_info
         sys.exit()
+
+def readResponse(text):
+    global is_cmd_from_user
+    if text.lower() in ['photo']:
+        photo_path = takePhoto(config['photoDir'], config['photoRes'])
+        img_link = uploadImgur(photo_path, config['imgurClientId'])
+        is_cmd_from_user = True
+    elif text.lower() in ['music']:
+        playMusic(config['musicDir'], config['song'])
+
 
 def takePhoto(photoDir, photoRes):
     photoPath = os.path.join(photoDir, 'pic.jpg')
