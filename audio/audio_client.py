@@ -232,8 +232,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
           
             # read response
             img_link = readResponse(res.text, config)
-            print >>sys.stdout, 'res %s img_link %s' % (res.text, img_link)
-
+            
     except ConnectionError as e:
         print >>sys.stderr, e
     except Exception, err:
