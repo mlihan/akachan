@@ -57,23 +57,23 @@ app.post('/events', verifyRequest, function(req, res) {
 	// assume it's text type here.
 	var text = content.text;
         
-        // analyze input 
-        var output = analyzeCommand(text);
-        if (output != "") {	
-            // Refer to https://developers.line.me/businessconnect/api-reference#sending_message
-     	    sendMsg(from, {
+    // analyze input 
+    var output = analyzeCommand(text);
+    if (output != "") {
+        // Refer to https://developers.line.me/businessconnect/api-reference#sending_message
+ 	    sendMsg(from, {
 		contentType: 1,
 		toType: 1,
 		// you can replace 'respond' with whatever you want
 		text: output 
-	    }, function(err) {
-		if (err) {
-			// sending message failed
-			return;
-		}
+    	}, function(err) {
+	    	if (err) {
+		    	// sending message failed
+				return;
+			}
 		// message sent
 	    });
-        }
+    }
 });
 
 function analyzeCommand(text) {
@@ -148,9 +148,9 @@ function sendImgToKnownUsers(url) {
         sendMsg(config.myMid, {
                 contentType: 2, toType: 1, originalContentUrl: url, previewImageUrl: thumbUrl
                 }, function(errMsg) {
-                        if (errMsg) {
-                            return;
-                        }
+                    if (errMsg) {
+                        return;
+                    }
                 });
 }
 
@@ -206,16 +206,16 @@ audio_app.post('/', function(req,res) {
 	var results = new Object();
 	results = req.body;
 	// Send a response
-        res.send(command);
+    res.send(command);
 	
-        // Analyze request
+    // Analyze request
 	if (results) {
 		//send results to clients
 		results["date_current"] = new Date().toISOString().slice(0, 10).replace('T', ' ');
-    	        results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
+    	results["time_current"] = new Date().toISOString().slice(11, 19).replace('T', ' ');
 
-    		//send results to all clients
-    		//console.log('results %s', JSON.stringify(results));
+    	//send results to all clients
+    	//console.log('results %s', JSON.stringify(results));
 		io.emit('results', results);
 		//Check data if baby is crying or quiet
 		if (results.time_crying == "" ) {
@@ -230,12 +230,12 @@ audio_app.post('/', function(req,res) {
 			sendMsgToKnownUsers(results.cry_message);
 			sendImgToKnownUsers(results.img_link);
 		}
-                //If user has command to send photo 
-                //console.log(command + " " + results.img_link); 
-                if (command == "photo" && results.img_link) {
-                	command = "ok";
-			sendImgToKnownUsers(results.img_link);
-                } else if (command == "music") {
+        //If user has command to send photo 
+        //console.log(command + " " + results.img_link); 
+        if (command == "photo" && results.img_link) {
+            command = "ok";
+		    sendImgToKnownUsers(results.img_link);
+        } else if (command == "music") {
 			command = "ok"
 		}
 	}
