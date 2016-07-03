@@ -181,6 +181,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             cry_message = "" 
             if is_cmd_from_user:
                 is_cmd_from_user = False
+                print >>sys.stdout, "photo command!!"
             else:
                 img_link = ""
 
@@ -230,8 +231,8 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             res = requests.post(web_server, data=jsonString, headers=headers)
           
             # read response
-            print >>sys.stdout, 'res %s' % res.text
-            readResponse(res.text, config)
+            img_link = readResponse(res.text, config)
+            print >>sys.stdout, 'res %s img_link %s' % (res.text, img_link)
 
     except ConnectionError as e:
         print >>sys.stderr, e
@@ -249,6 +250,7 @@ def readResponse(text, config):
         photo_path = takePhoto(config['photoDir'], config['photoRes'])
         img_link = uploadImgur(photo_path, config['imgurClientId'])
         is_cmd_from_user = True
+        return img_link
     elif text.lower() in ['music']:
         playMusic(config['musicDir'], config['song'])
 
