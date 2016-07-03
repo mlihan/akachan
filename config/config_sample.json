@@ -10,5 +10,12 @@
   "upperLimit": 25000,
   "noiseThreshold": 0.25,
   "minQuietTime": 10,
-  "minNoiseTime": 5
+  "minNoiseTime": 5,
+  "myMid": "",
+  "imgurClientId": "",
+  "photoDir": "/home/pi/Pictures/webcam/",
+  "photoRes": "640x360",
+  "musicDir": "/home/pi/Music/",
+  "song": "Twinkle.mp3",
+  "babyName": ""
 }
