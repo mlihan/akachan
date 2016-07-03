@@ -12,7 +12,7 @@ import sys
 import base64
 import subprocess as sp
 import signal
-#from subprocess import call
+from subprocess import call
 from base64 import b64encode
 from scipy import ndimage, interpolate
 from datetime import datetime
@@ -176,6 +176,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
             str_crying = "Crying for "
             str_quiet = "Quiet for "
             is_crying = False
+            cry_message = "" 
             global has_imgur
 
             if len(crying_blocks) == 0:
@@ -189,23 +190,28 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
                     is_crying = False
                     has_imgur = False
             
-            # take a photo of baby and upload to imgur
+            # new crying block detected  
             if is_crying and not has_imgur:
-                #play a music
-                playMusic(config['musicDir'], 'Twinkle.mp3')
-                print >>sys.stdout, 'playing %s/Twinkle.mp3' % config['musicDir']
                 #take a picture and upload to imgur
                 photo_path = takePhoto(config['photoDir'], config['photoRes'])
                 img_link = uploadImgur(photo_path, config['imgurClientId'])
                 print >>sys.stdout, 'imgLink is %s' % img_link
                 has_imgur = True
 
+                #play a music
+                playMusic(config['musicDir'], config['song'])
+                print >>sys.stdout, 'playing %s/%s' % (config['musicDir'], config['song'])
+
+                #cry message
+                cry_message = config['babyName'] + ' is crying, I will play a song ' + config['song'] + ' to calm ' + config['babyName'] + '.'
+ 
             # return results to webserver
             results = {"audio_plot": audio_plot,
                        "crying_blocks": crying_blocks,
                        "time_crying": time_crying,
                        "time_quiet": time_quiet,
-                       "img_link": img_link}
+                       "img_link": img_link,
+                       "cry_message": cry_message}
 
             # convert to json
             results['audio_plot'] = results['audio_plot'].tolist()
@@ -229,7 +235,8 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
 
 def takePhoto(photoDir, photoRes):
     photoPath = os.path.join(photoDir, 'pic.jpg')
-    sp.Popen(['fswebcam', '-r', photoRes, '--no-banner', photoPath])
+    call(['fswebcam', '-r', photoRes, '--no-banner', photoPath])
+    #sp.Popen(['fswebcam', '-r', photoRes, '--no-banner', photoPath])
     return photoPath
 
 def uploadImgur(photoPath, clientID):
@@ -248,13 +255,13 @@ def uploadImgur(photoPath, clientID):
 def playMusic(musicDir, filename):
     global music_proc
     # stop the current music if it's still playing
-    if music_proc.poll() is None:
-        os.killpg(os.gtpgid(music_proc.pid), signal.SIGTERM)
+    #if music_proc.poll() is None:
+        #os.killpg(os.gtpgid(music_proc.pid), signal.SIGTERM)
         #music_proc.kill()
     # play music
     musicPath = os.path.join(musicDir, filename)
-    music_proc = sp.Popen(['mplayer', musicPath])
-
+    music_proc = sp.Popen(['sudo', 'mplayer', '-ao', 'pulse', musicPath])
+    #call(['sudo', 'mplayer', '-ao', 'pulse', musicPath]) 
 
 def init_server():
     # read config file
