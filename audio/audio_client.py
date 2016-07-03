@@ -231,7 +231,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
           
             # read response
             print >>sys.stdout, 'res %s' % res.text
-            readResponse(res.text)
+            readResponse(res.text, config)
 
     except ConnectionError as e:
         print >>sys.stderr, e
@@ -243,7 +243,7 @@ def process_broadcast(shared_audio, shared_time, shared_pos, config, lock):
         del exc_info
         sys.exit()
 
-def readResponse(text):
+def readResponse(text, config):
     global is_cmd_from_user
     if text.lower() in ['photo']:
         photo_path = takePhoto(config['photoDir'], config['photoRes'])
